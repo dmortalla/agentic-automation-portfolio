@@ -1,0 +1,14 @@
+[project]
+name = "agentic-automation-portfolio"
+version = "0.1.0"
+description = "Production-style portfolio of agentic automation systems using LangGraph, LangChain, RAG, observability, and local LLM runtimes."
+requires-python = ">=3.13"
+readme = "README.md"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
