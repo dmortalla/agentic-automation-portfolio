@@ -12,3 +12,4 @@ chromadb
 requests
 httpx
 pypdf
+pydantic-settings
