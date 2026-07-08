@@ -1,6 +1,27 @@
 """Schemas for the Customer Support Escalation System."""
 
+from enum import StrEnum
+
 from pydantic import BaseModel, Field, field_validator
+
+
+class TicketCategory(StrEnum):
+    """Supported ticket categories."""
+
+    BILLING = "billing"
+    TECHNICAL = "technical"
+    ACCOUNT = "account"
+    PRODUCT = "product"
+    GENERAL = "general"
+
+
+class TicketPriority(StrEnum):
+    """Supported ticket priority levels."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
 
 
 class SupportTicket(BaseModel):
@@ -47,5 +68,44 @@ class SupportTicket(BaseModel):
 
         if not cleaned_value:
             raise ValueError("Value must not be blank.")
+
+        return cleaned_value
+
+
+class TicketClassification(BaseModel):
+    """Structured classification result for a support ticket.
+
+    Attributes:
+        category: Business category assigned to the ticket.
+        priority: Urgency level assigned to the ticket.
+        confidence: Model or rule confidence from 0.0 to 1.0.
+        reasoning: Short explanation for the classification.
+        requires_human_review: Whether a human should review the classification.
+    """
+
+    category: TicketCategory
+    priority: TicketPriority
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    reasoning: str = Field(..., min_length=10)
+    requires_human_review: bool = Field(default=False)
+
+    @field_validator("reasoning")
+    @classmethod
+    def strip_and_validate_reasoning(cls, value: str) -> str:
+        """Strip whitespace and reject blank reasoning.
+
+        Args:
+            value: Raw reasoning value.
+
+        Returns:
+            Cleaned reasoning value.
+
+        Raises:
+            ValueError: If reasoning is blank after stripping whitespace.
+        """
+        cleaned_value = value.strip()
+
+        if not cleaned_value:
+            raise ValueError("Reasoning must not be blank.")
 
         return cleaned_value
