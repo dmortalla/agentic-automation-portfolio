@@ -114,7 +114,7 @@ Example:
 LLM_PROVIDER=ollama
 ```
 
-The rest of the application should not call provider-specific APIs directly.  
+The rest of the application should not call provider-specific APIs directly.
 All model calls should go through the runtime adapter layer.
 
 ## 7. Observability Strategy
