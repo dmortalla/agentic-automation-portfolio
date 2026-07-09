@@ -3,20 +3,24 @@
 This adapter targets vLLM's OpenAI-compatible API server.
 """
 
-import json
-
 import requests
-from pydantic import ValidationError
 
 from shared.llm_runtime.base import BaseLLMRuntime, StructuredOutputT
 from shared.llm_runtime.exceptions import LLMRuntimeError
+from shared.llm_runtime.parsing import parse_and_validate_structured_output
 
 
 class VLLMRuntime(BaseLLMRuntime):
     """Runtime adapter for vLLM OpenAI-compatible inference."""
 
     def __init__(self, base_url: str, model: str, timeout_seconds: int = 60) -> None:
-        """Initialize the vLLM runtime adapter."""
+        """Initialize the vLLM runtime adapter.
+
+        Args:
+            base_url: vLLM OpenAI-compatible server base URL.
+            model: vLLM model name.
+            timeout_seconds: HTTP request timeout in seconds.
+        """
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout_seconds = timeout_seconds
@@ -27,7 +31,11 @@ class VLLMRuntime(BaseLLMRuntime):
         return "vllm"
 
     def check_health(self) -> None:
-        """Verify the vLLM server is reachable."""
+        """Verify the vLLM server is reachable.
+
+        Raises:
+            LLMRuntimeError: If the vLLM server is unreachable.
+        """
         endpoint = f"{self.base_url}/models"
 
         try:
@@ -46,7 +54,18 @@ class VLLMRuntime(BaseLLMRuntime):
         prompt: str,
         output_model: type[StructuredOutputT],
     ) -> StructuredOutputT:
-        """Generate structured output using vLLM's OpenAI-compatible API."""
+        """Generate structured output using vLLM's OpenAI-compatible API.
+
+        Args:
+            prompt: Prompt sent to the model runtime.
+            output_model: Pydantic model class used to validate output.
+
+        Returns:
+            Validated structured output.
+
+        Raises:
+            LLMRuntimeError: If the request, parsing, or validation fails.
+        """
         self.check_health()
 
         if not prompt.strip():
@@ -82,21 +101,12 @@ class VLLMRuntime(BaseLLMRuntime):
             raise LLMRuntimeError(f"vLLM request failed: {error}") from error
 
         try:
-            response_payload = response.json()
-            raw_model_output = response_payload["choices"][0]["message"]["content"]
-            parsed_output = json.loads(raw_model_output)
-
-            if (
-                isinstance(parsed_output, dict)
-                and isinstance(parsed_output.get("confidence"), int | float)
-                and 1 < parsed_output["confidence"] <= 100
-            ):
-                parsed_output["confidence"] = parsed_output["confidence"] / 100
-
-        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as error:
+            raw_model_output = response.json()["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as error:
             raise LLMRuntimeError("vLLM returned invalid structured output.") from error
 
-        try:
-            return output_model.model_validate(parsed_output)
-        except ValidationError as error:
-            raise LLMRuntimeError(f"vLLM output failed schema validation: {error}") from error
+        return parse_and_validate_structured_output(
+            raw_output=raw_model_output,
+            output_model=output_model,
+            provider_name="vLLM",
+        )
