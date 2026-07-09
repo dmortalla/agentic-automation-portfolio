@@ -17,38 +17,45 @@
 - CLI runner
 - Unit tests
 
-## v0.3.0 — Customer Support RAG
+## v0.3.0 — Runtime Platform
 
-- Knowledge base ingestion
-- Retrieval utilities
-- Support response drafting
-- Source-grounded answers
+- Demo runtime
+- Ollama runtime
+- vLLM runtime
+- Shared parsing and validation utilities
+- Provider-agnostic runtime factory
 
-## v0.4.0 — Escalation and Approval
+## v0.4.0 — Document Compliance Checker
 
-- Sentiment agent
-- Escalation agent
-- Supervisor approval gate
-- Human-review workflow
-
-## v0.5.0 — Document Compliance Checker
-
-- Document schema
-- Extraction workflow
-- Rule validation
+- Document intake
+- Classification workflow
+- Structured extraction
+- Compliance validation
 - Audit output
+- Human review support
 
-## v0.6.0 — Sales Pipeline Manager
+## v0.5.0 — AI Sales Pipeline Manager
 
-- Lead schema
-- Lead scoring
-- Outreach draft generation
-- Mock CRM update flow
+Human-in-the-loop sales automation for lead scoring, company research, outreach drafting, CRM recommendations, and follow-up planning.
+
+The system drafts and recommends actions, but does not send emails or update CRM records without human approval.
+
+Planned capabilities:
+
+- Lead scoring agent
+- Company research agent
+- Outreach draft agent
+- Follow-up planning agent
+- CRM recommendation agent
+- Human approval gate
+- Audit trail for recommendations and approvals
 
 ## v1.0.0 — Production-Ready Portfolio
 
 - Streamlit dashboard
 - Docker support
+- GitHub Actions
+- Pre-commit hooks
 - Final README polish
 - Screenshots and demo assets
 - Release tag
