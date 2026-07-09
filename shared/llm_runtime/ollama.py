@@ -5,8 +5,6 @@ the BaseLLMRuntime contract so agents can depend on a common interface
 without importing Ollama-specific clients.
 """
 
-from pydantic import BaseModel
-
 from shared.llm_runtime.base import BaseLLMRuntime, StructuredOutputT
 from shared.llm_runtime.exceptions import LLMRuntimeError
 
