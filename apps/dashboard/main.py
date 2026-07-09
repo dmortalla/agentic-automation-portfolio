@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from time import perf_counter
 
 import streamlit as st
 
@@ -37,7 +38,7 @@ def main() -> None:
     from shared.llm_runtime.factory import create_runtime
     from shared.models.enums import LLMProvider
 
-    settings = Settings()
+    base_settings = Settings()
 
     st.set_page_config(
         page_title="Agentic Automation Portfolio",
@@ -52,7 +53,6 @@ def main() -> None:
     )
 
     render_metrics()
-
     st.divider()
 
     tab_overview, tab_demo, tab_config = st.tabs(
@@ -61,11 +61,24 @@ def main() -> None:
 
     with tab_overview:
         st.header("Implemented Vertical Slice")
-
         st.write(
             "This dashboard demonstrates the completed customer support escalation "
             "vertical slice: form input, Pydantic validation, runtime injection, "
-            "LangGraph orchestration, and structured classification output."
+            "LangGraph orchestration, structured output, and runtime metadata."
+        )
+
+        st.subheader("LangGraph Workflow")
+        st.code(
+            """
+START
+  |
+  v
+classifier
+  |
+  v
+END
+""".strip(),
+            language="text",
         )
 
         capabilities = [
@@ -76,6 +89,8 @@ def main() -> None:
             "Runtime contract tests",
             "LangGraph customer-support workflow",
             "Structured Pydantic outputs",
+            "Runtime switching",
+            "Execution latency tracking",
             "GitHub Actions CI",
             "Pre-commit hooks",
         ]
@@ -85,6 +100,15 @@ def main() -> None:
 
     with tab_demo:
         st.header("Live Customer Support Escalation Demo")
+
+        selected_provider = st.selectbox(
+            "Runtime Provider",
+            options=list(LLMProvider),
+            format_func=lambda provider: provider.value,
+            index=list(LLMProvider).index(base_settings.llm_provider),
+        )
+
+        selected_settings = Settings(llm_provider=selected_provider)
 
         with st.form("support_ticket_form"):
             ticket_id = st.text_input("Ticket ID", value="TICKET-1001")
@@ -122,10 +146,26 @@ def main() -> None:
                     source=source,
                 )
 
-                runtime = create_runtime(settings)
+                runtime = create_runtime(selected_settings)
+
+                start_time = perf_counter()
                 final_state = classify_support_ticket(ticket=ticket, runtime=runtime)
+                elapsed_seconds = perf_counter() - start_time
 
                 st.success("Workflow completed successfully.")
+
+                runtime_col, latency_col, provider_col = st.columns(3)
+                runtime_col.metric("Selected Runtime", selected_provider.value)
+                provider_col.metric("Runtime Adapter", runtime.provider_name)
+                latency_col.metric("Latency", f"{elapsed_seconds:.2f}s")
+
+                st.subheader("Workflow Timeline")
+                st.code(
+                    """
+START -> classifier -> END
+""".strip(),
+                    language="text",
+                )
 
                 st.subheader("Classification")
                 st.json(
@@ -136,6 +176,9 @@ def main() -> None:
 
                 st.subheader("Workflow Notes")
                 st.json(final_state.notes)
+
+                st.subheader("Input Ticket")
+                st.json(ticket.model_dump())
 
                 st.subheader("Full Final State")
                 st.json(final_state.model_dump())
@@ -149,21 +192,20 @@ def main() -> None:
 
         st.json(
             {
-                "active_provider": settings.llm_provider.value,
+                "active_provider": base_settings.llm_provider.value,
                 "available_providers": [provider.value for provider in LLMProvider],
-                "ollama_base_url": settings.ollama_base_url,
-                "ollama_model": settings.ollama_model,
-                "vllm_base_url": settings.vllm_base_url,
-                "vllm_model": settings.vllm_model,
-                "tensorrt_base_url": settings.tensorrt_base_url,
-                "tensorrt_model": settings.tensorrt_model,
+                "ollama_base_url": base_settings.ollama_base_url,
+                "ollama_model": base_settings.ollama_model,
+                "vllm_base_url": base_settings.vllm_base_url,
+                "vllm_model": base_settings.vllm_model,
+                "tensorrt_base_url": base_settings.tensorrt_base_url,
+                "tensorrt_model": base_settings.tensorrt_model,
             }
         )
 
         st.header("Next Roadmap")
         st.json(
             [
-                "Dashboard polish",
                 "Document compliance checker workflow",
                 "Sales pipeline manager workflow",
                 "Multi-agent expansion",
