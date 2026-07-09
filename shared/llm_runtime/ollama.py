@@ -1,44 +1,112 @@
-"""Ollama runtime adapter.
+"""Ollama runtime adapter."""
 
-This adapter represents the local-development Ollama runtime. It satisfies
-the BaseLLMRuntime contract so agents can depend on a common interface
-without importing Ollama-specific clients.
-"""
+import json
+
+import requests
+from pydantic import ValidationError
 
 from shared.llm_runtime.base import BaseLLMRuntime, StructuredOutputT
 from shared.llm_runtime.exceptions import LLMRuntimeError
 
 
 class OllamaRuntime(BaseLLMRuntime):
-    """Runtime adapter for Ollama-compatible local inference."""
+    """Runtime adapter for Ollama."""
 
-    def __init__(self, base_url: str, model: str) -> None:
-        """Initialize the Ollama runtime adapter.
-
-        Args:
-            base_url: Ollama server base URL.
-            model: Ollama model name.
-        """
-        self.base_url = base_url
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        timeout_seconds: int = 60,
+    ) -> None:
+        self.base_url = base_url.rstrip("/")
         self.model = model
+        self.timeout_seconds = timeout_seconds
 
     @property
     def provider_name(self) -> str:
-        """Return the runtime provider name."""
         return "ollama"
+
+    def check_health(self) -> None:
+        """Verify Ollama is reachable."""
+
+        endpoint = f"{self.base_url}/api/tags"
+
+        try:
+            response = requests.get(
+                endpoint,
+                timeout=5,
+            )
+            response.raise_for_status()
+
+        except requests.RequestException as error:
+            raise LLMRuntimeError(
+                "Ollama is not reachable.\n\n"
+                "Start the server with:\n"
+                "    ollama serve\n\n"
+                "Verify with:\n"
+                "    ollama list"
+            ) from error
 
     def generate_structured(
         self,
         prompt: str,
         output_model: type[StructuredOutputT],
     ) -> StructuredOutputT:
-        """Generate structured output.
+        """Generate structured output."""
 
-        Args:
-            prompt: Prompt sent to the model runtime.
-            output_model: Pydantic model class used to validate output.
+        self.check_health()
 
-        Raises:
-            LLMRuntimeError: Always for now because live Ollama calls are added later.
-        """
-        raise LLMRuntimeError("Ollama structured generation is not implemented yet.")
+        if not prompt.strip():
+            raise LLMRuntimeError(
+                "Prompt must not be blank."
+            )
+
+        endpoint = f"{self.base_url}/api/generate"
+
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "format": output_model.model_json_schema(),
+        }
+
+        try:
+            response = requests.post(
+                endpoint,
+                json=payload,
+                timeout=self.timeout_seconds,
+            )
+            response.raise_for_status()
+
+        except requests.RequestException as error:
+            raise LLMRuntimeError(
+                f"Ollama request failed: {error}"
+            ) from error
+
+        try:
+            raw = response.json()["response"]
+            parsed = json.loads(raw)
+
+            if (
+                isinstance(parsed, dict)
+                and isinstance(parsed.get("confidence"), int | float)
+                and 1 < parsed["confidence"] <= 100
+            ):
+                parsed["confidence"] = parsed["confidence"] / 100
+
+        except (
+            KeyError,
+            TypeError,
+            json.JSONDecodeError,
+        ) as error:
+            raise LLMRuntimeError(
+                "Ollama returned invalid structured output."
+            ) from error
+
+        try:
+            return output_model.model_validate(parsed)
+
+        except ValidationError as error:
+            raise LLMRuntimeError(
+                f"Ollama output failed schema validation: {error}"
+            ) from error
