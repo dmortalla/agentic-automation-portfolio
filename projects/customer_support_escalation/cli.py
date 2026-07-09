@@ -2,7 +2,26 @@
 
 from projects.customer_support_escalation.schemas import SupportTicket
 from projects.customer_support_escalation.workflow import classify_support_ticket
-from shared.llm_runtime.factory import create_runtime
+from shared.llm_runtime.base import BaseLLMRuntime
+
+
+class DemoRuntime(BaseLLMRuntime):
+    """Deterministic runtime used for local CLI demonstrations."""
+
+    @property
+    def provider_name(self) -> str:
+        """Return the demo provider name."""
+        return "demo"
+
+    def generate_structured(self, prompt, output_model):
+        """Return a deterministic classification for demo use."""
+        return output_model(
+            category="technical",
+            priority="high",
+            confidence=0.98,
+            reasoning="Customer cannot access the application after a password reset.",
+            requires_human_review=False,
+        )
 
 
 def main() -> None:
@@ -16,11 +35,9 @@ def main() -> None:
         source="demo",
     )
 
-    runtime = create_runtime()
-
     result = classify_support_ticket(
         ticket=ticket,
-        runtime=runtime,
+        runtime=DemoRuntime(),
     )
 
     print("=" * 60)
