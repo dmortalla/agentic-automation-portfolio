@@ -1,8 +1,4 @@
-"""Ollama runtime adapter.
-
-This adapter calls Ollama's local HTTP API and requests structured output
-using the Pydantic model JSON schema.
-"""
+"""Ollama runtime adapter."""
 
 import json
 
@@ -14,46 +10,59 @@ from shared.llm_runtime.exceptions import LLMRuntimeError
 
 
 class OllamaRuntime(BaseLLMRuntime):
-    """Runtime adapter for Ollama-compatible local inference."""
+    """Runtime adapter for Ollama."""
 
-    def __init__(self, base_url: str, model: str, timeout_seconds: int = 60) -> None:
-        """Initialize the Ollama runtime adapter.
-
-        Args:
-            base_url: Ollama server base URL.
-            model: Ollama model name.
-            timeout_seconds: HTTP request timeout in seconds.
-        """
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        timeout_seconds: int = 60,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout_seconds = timeout_seconds
 
     @property
     def provider_name(self) -> str:
-        """Return the runtime provider name."""
         return "ollama"
+
+    def check_health(self) -> None:
+        """Verify Ollama is reachable."""
+
+        endpoint = f"{self.base_url}/api/tags"
+
+        try:
+            response = requests.get(
+                endpoint,
+                timeout=5,
+            )
+            response.raise_for_status()
+
+        except requests.RequestException as error:
+            raise LLMRuntimeError(
+                "Ollama is not reachable.\n\n"
+                "Start the server with:\n"
+                "    ollama serve\n\n"
+                "Verify with:\n"
+                "    ollama list"
+            ) from error
 
     def generate_structured(
         self,
         prompt: str,
         output_model: type[StructuredOutputT],
     ) -> StructuredOutputT:
-        """Generate structured output using Ollama's local API.
+        """Generate structured output."""
 
-        Args:
-            prompt: Prompt sent to the model runtime.
-            output_model: Pydantic model class used to validate output.
+        self.check_health()
 
-        Returns:
-            Validated structured output.
-
-        Raises:
-            LLMRuntimeError: If Ollama request, JSON parsing, or validation fails.
-        """
         if not prompt.strip():
-            raise LLMRuntimeError("Prompt must not be blank.")
+            raise LLMRuntimeError(
+                "Prompt must not be blank."
+            )
 
         endpoint = f"{self.base_url}/api/generate"
+
         payload = {
             "model": self.model,
             "prompt": prompt,
@@ -68,17 +77,36 @@ class OllamaRuntime(BaseLLMRuntime):
                 timeout=self.timeout_seconds,
             )
             response.raise_for_status()
+
         except requests.RequestException as error:
-            raise LLMRuntimeError(f"Ollama request failed: {error}") from error
+            raise LLMRuntimeError(
+                f"Ollama request failed: {error}"
+            ) from error
 
         try:
-            response_payload = response.json()
-            raw_model_output = response_payload["response"]
-            parsed_output = json.loads(raw_model_output)
-        except (KeyError, json.JSONDecodeError, TypeError) as error:
-            raise LLMRuntimeError("Ollama returned invalid structured output.") from error
+            raw = response.json()["response"]
+            parsed = json.loads(raw)
+
+            if (
+                isinstance(parsed, dict)
+                and isinstance(parsed.get("confidence"), int | float)
+                and 1 < parsed["confidence"] <= 100
+            ):
+                parsed["confidence"] = parsed["confidence"] / 100
+
+        except (
+            KeyError,
+            TypeError,
+            json.JSONDecodeError,
+        ) as error:
+            raise LLMRuntimeError(
+                "Ollama returned invalid structured output."
+            ) from error
 
         try:
-            return output_model.model_validate(parsed_output)
+            return output_model.model_validate(parsed)
+
         except ValidationError as error:
-            raise LLMRuntimeError("Ollama output failed schema validation.") from error
+            raise LLMRuntimeError(
+                f"Ollama output failed schema validation: {error}"
+            ) from error

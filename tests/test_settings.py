@@ -9,7 +9,7 @@ from shared.models.enums import LLMProvider
 
 def test_default_settings_use_ollama() -> None:
     """Default settings should use Ollama as the local development provider."""
-    settings = Settings()
+    settings = Settings(_env_file=None)
 
     assert settings.llm_provider == LLMProvider.OLLAMA
     assert settings.ollama_base_url == "http://localhost:11434"
