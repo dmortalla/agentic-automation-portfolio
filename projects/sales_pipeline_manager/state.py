@@ -4,6 +4,7 @@ from pydantic import Field, field_validator
 
 from projects.sales_pipeline_manager.schemas import (
     ApprovalStatus,
+    CompanyResearch,
     Lead,
     LeadScore,
 )
@@ -11,20 +12,11 @@ from shared.state.base import BaseWorkflowState
 
 
 class SalesPipelineState(BaseWorkflowState):
-    """State passed through the Sales Pipeline LangGraph workflow.
-
-    Attributes:
-        lead: Original validated lead.
-        lead_score: Structured qualification result, when available.
-        approval_status: Current human-review status.
-        reviewer_feedback: Optional feedback supplied by a reviewer.
-        pending_actions: Proposed external actions awaiting approval.
-        completed_actions: Approved actions recorded after execution.
-        audit_events: Human-readable workflow audit events.
-    """
+    """State passed through the Sales Pipeline LangGraph workflow."""
 
     lead: Lead
     lead_score: LeadScore | None = Field(default=None)
+    company_research: CompanyResearch | None = Field(default=None)
     approval_status: ApprovalStatus = Field(default=ApprovalStatus.PENDING)
     reviewer_feedback: str | None = Field(default=None, min_length=1)
     pending_actions: list[str] = Field(default_factory=list)
@@ -86,11 +78,7 @@ class SalesPipelineState(BaseWorkflowState):
         self.add_audit_event("Human reviewer rejected the recommendations.")
 
     def complete_action(self, action: str) -> None:
-        """Record an approved action as completed.
-
-        Raises:
-            ValueError: If approval has not been granted or the action is unknown.
-        """
+        """Record an approved action as completed."""
         if self.approval_status != ApprovalStatus.APPROVED:
             raise ValueError("External actions require human approval.")
 
