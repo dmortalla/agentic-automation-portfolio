@@ -1,6 +1,10 @@
 """Prompt builders for the AI Sales Pipeline Manager."""
 
-from projects.sales_pipeline_manager.schemas import Lead, LeadScore
+from projects.sales_pipeline_manager.schemas import (
+    CompanyResearch,
+    Lead,
+    LeadScore,
+)
 
 
 def build_lead_scoring_prompt(lead: Lead) -> str:
@@ -72,4 +76,60 @@ Return structured research containing:
 - requires_human_review: always true
 
 Do not recommend contacting the lead or changing a CRM record.
+""".strip()
+
+
+def build_outreach_draft_prompt(
+    lead: Lead,
+    lead_score: LeadScore,
+    research: CompanyResearch,
+) -> str:
+    """Build a constrained personalized outreach-draft prompt.
+
+    Args:
+        lead: Validated lead.
+        lead_score: Validated qualification result.
+        research: Validated company research.
+
+    Returns:
+        Prompt requesting a review-first outreach draft.
+    """
+    return f"""
+You are a business-to-business outreach drafting specialist.
+
+Create a concise, personalized outreach email using only the supplied facts.
+Do not invent achievements, customers, metrics, relationships, or research.
+
+Lead:
+- Company: {lead.company_name}
+- Contact: {lead.contact_name}
+- Role: {lead.job_title or "Unknown"}
+- Industry: {lead.industry or "Unknown"}
+- Expressed need: {lead.expressed_need}
+
+Qualification:
+- Score: {lead_score.score}
+- Decision: {lead_score.decision.value}
+- Reasoning: {lead_score.reasoning}
+
+Research:
+- Summary: {research.summary}
+- Pain points: {research.pain_points}
+- Opportunities: {research.opportunities}
+
+Return structured outreach containing:
+- subject
+- body
+- personalization_summary
+- call_to_action
+- tone: professional, consultative, or friendly
+- confidence: decimal from 0.0 to 1.0
+- requires_human_review: always true
+- approval_status: pending
+
+The message is a draft only.
+
+Do not claim that the email was sent.
+Do not recommend bypassing human approval.
+Do not include manipulative urgency, unsupported claims, or fabricated facts.
 """.strip()

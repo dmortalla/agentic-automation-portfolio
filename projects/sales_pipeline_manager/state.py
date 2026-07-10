@@ -7,6 +7,7 @@ from projects.sales_pipeline_manager.schemas import (
     CompanyResearch,
     Lead,
     LeadScore,
+    OutreachDraft,
 )
 from shared.state.base import BaseWorkflowState
 
@@ -17,11 +18,12 @@ class SalesPipelineState(BaseWorkflowState):
     lead: Lead
     lead_score: LeadScore | None = Field(default=None)
     company_research: CompanyResearch | None = Field(default=None)
+    outreach_draft: OutreachDraft | None = Field(default=None)
     approval_status: ApprovalStatus = Field(default=ApprovalStatus.PENDING)
     reviewer_feedback: str | None = Field(default=None, min_length=1)
-    pending_actions: list[str] = Field(default_factory=list)
-    completed_actions: list[str] = Field(default_factory=list)
-    audit_events: list[str] = Field(default_factory=list)
+    pending_actions: list[str] = Field(default_factory=list, init=False)
+    completed_actions: list[str] = Field(default_factory=list, init=False)
+    audit_events: list[str] = Field(default_factory=list, init=False)
 
     @field_validator("reviewer_feedback")
     @classmethod

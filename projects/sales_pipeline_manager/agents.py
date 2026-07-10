@@ -3,11 +3,13 @@
 from projects.sales_pipeline_manager.prompts import (
     build_company_research_prompt,
     build_lead_scoring_prompt,
+    build_outreach_draft_prompt,
 )
 from projects.sales_pipeline_manager.schemas import (
     ApprovalStatus,
     CompanyResearch,
     LeadScore,
+    OutreachDraft,
 )
 from projects.sales_pipeline_manager.state import SalesPipelineState
 from shared.llm_runtime.base import BaseLLMRuntime
@@ -67,11 +69,7 @@ class ResearchAgent:
         return "research"
 
     def run(self, state: SalesPipelineState) -> SalesPipelineState:
-        """Research the scored lead and update workflow state.
-
-        Raises:
-            ValueError: If lead scoring has not completed or review is bypassed.
-        """
+        """Research the scored lead and update workflow state."""
         if state.lead_score is None:
             raise ValueError(
                 "Lead scoring must complete before company research."
@@ -95,6 +93,63 @@ class ResearchAgent:
         state.company_research = research
         state.add_audit_event(
             f"Company research completed by {self.name}."
+        )
+
+        return state
+
+
+class OutreachDraftAgent:
+    """Agent that drafts personalized outreach for human review."""
+
+    def __init__(self, runtime: BaseLLMRuntime) -> None:
+        """Initialize the outreach-draft agent."""
+        self._runtime = runtime
+
+    @property
+    def name(self) -> str:
+        """Return the agent name."""
+        return "outreach_draft"
+
+    def run(self, state: SalesPipelineState) -> SalesPipelineState:
+        """Draft outreach and update workflow state."""
+        if state.lead_score is None:
+            raise ValueError(
+                "Lead scoring must complete before outreach drafting."
+            )
+
+        if state.company_research is None:
+            raise ValueError(
+                "Company research must complete before outreach drafting."
+            )
+
+        prompt = build_outreach_draft_prompt(
+            lead=state.lead,
+            lead_score=state.lead_score,
+            research=state.company_research,
+        )
+
+        draft = self._runtime.generate_structured(
+            prompt=prompt,
+            output_model=OutreachDraft,
+        )
+
+        if not draft.requires_human_review:
+            raise ValueError(
+                "Outreach drafts must require human review."
+            )
+
+        if draft.approval_status != ApprovalStatus.PENDING:
+            raise ValueError(
+                "New outreach drafts must begin as pending."
+            )
+
+        state.outreach_draft = draft
+        state.approval_status = ApprovalStatus.PENDING
+        state.add_pending_action(
+            "Review personalized outreach draft before sending."
+        )
+        state.add_audit_event(
+            f"Outreach draft created by {self.name}."
         )
 
         return state
