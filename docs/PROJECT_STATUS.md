@@ -1,82 +1,134 @@
 # Project Status
 
-## Current State
+## Repository State
 
-- Repository: agentic-automation-portfolio
-- Branch: main
-- Remote: origin/main
-- Latest verified test count: 77 passed
-- Quality gate:
-  1. ruff check .
-  2. pytest
-  3. python -m compileall shared projects apps tests scripts
+- Repository: `agentic-automation-portfolio`
+- Default branch: `main`
+- Remote branch: `origin/main`
+- Latest verified test count: **77 passed**
+- Architecture status: **Frozen**
+- Development phase: **Professionalization and production hardening**
 
-## Completed
+## Standard Quality Gate
 
-- Architecture documentation and ADRs
-- Environment-agnostic setup
-- GitHub Flow workflow
-- GitHub Actions CI
-- Pre-commit hooks
-- Shared settings
-- Shared logging
-- Runtime abstraction
-- Runtime factory
+Run before every commit:
+
+1. `ruff check .`
+2. `pytest`
+3. `python -m compileall shared projects apps tests scripts`
+
+Run an application smoke test when a user-facing entry point changes.
+
+## Completed Platform Capabilities
+
+- Production-style monorepo architecture
+- Environment-agnostic local development
+- Validated Pydantic settings
+- Shared structured logging
+- Provider-agnostic LLM runtime interface
+- Runtime factory with dependency injection
 - Demo runtime
-- Ollama runtime
-- vLLM runtime
-- TensorRT runtime productionization
+- Real Ollama runtime
+- Real vLLM OpenAI-compatible runtime
+- TensorRT-LLM runtime productionization
+- Shared structured-output parsing and validation
+- Confidence normalization
 - Runtime contract tests
-- Shared runtime parsing utilities
-- Customer Support LangGraph workflow
-- Customer Support CLI
-- Streamlit dashboard
+- GitHub Actions quality-gate workflow
+- Pre-commit hooks
+- Architecture Decision Records
+- Mermaid architecture documentation
+- GitHub Flow development process
+
+## Completed Applications
+
+### Customer Support and Escalation
+
+- Validated support ticket schema
+- Structured classification schema
+- Typed LangGraph workflow state
+- Classifier agent
+- Prompt builder
+- LangGraph orchestration
+- Workflow runner
+- CLI runtime selection
+- Real Ollama execution
+- Streamlit dashboard demo
 - Dashboard runtime switching
-- Live customer support dashboard demo
-- Document Compliance vertical slice
-- Sales Pipeline vertical slice
-- Human-in-the-loop Sales Pipeline positioning
+
+### Document Compliance Checker
+
+- Initial end-to-end vertical slice
+- Project-specific workflow structure
+- Tests integrated into the repository quality gate
+
+### AI Sales Pipeline Manager
+
+- Initial end-to-end vertical slice
+- Stable internal module path: `projects/sales_pipeline_manager/`
+- Human-in-the-loop product positioning
+- External actions require review and approval
+
+## Sales Pipeline Safety Model
+
+The AI Sales Pipeline Manager may:
+
+- Score and rank leads
+- Research organizations
+- Draft personalized outreach
+- Recommend CRM changes
+- Recommend follow-up timing
+
+The workflow must require human approval before:
+
+- Sending external email
+- Updating CRM records
+- Scheduling external follow-up
+- Triggering other irreversible business actions
 
 ## Current Architecture
 
-The repository is organized as a production-style AI automation platform:
+```mermaid
+flowchart TB
+    UI[CLI and Streamlit Apps]
+    WORKFLOW[Workflow Runners]
+    GRAPH[LangGraph Orchestration]
+    AGENTS[Project Agents]
+    RUNTIME[Provider-Agnostic Runtime Layer]
+    MODELS[Pydantic Structured Outputs]
 
-- shared/ contains reusable infrastructure
-- projects/ contains business workflows
-- apps/ contains user-facing apps
-- tests/ contains unit and contract tests
-- docs/ contains architecture, ADRs, roadmap, and status
-- scripts/ contains developer tooling
+    UI --> WORKFLOW
+    WORKFLOW --> GRAPH
+    GRAPH --> AGENTS
+    AGENTS --> RUNTIME
+    RUNTIME --> MODELS
 
-## Current Project Positioning
+    RUNTIME --> DEMO[Demo Runtime]
+    RUNTIME --> OLLAMA[Ollama]
+    RUNTIME --> VLLM[vLLM]
+    RUNTIME --> TRT[TensorRT-LLM]
+Repository Structure
+shared/ — reusable infrastructure
+projects/ — business workflows
+apps/ — user-facing applications
+tests/ — unit, integration, and contract tests
+scripts/ — developer automation
+docs/ — architecture, ADRs, roadmap, and status
+.github/ — CI workflows and repository automation
+Next Recommended Work
+Clean up merged local branch references.
+Add the interview and engineering-decision documentation.
+Review and modernize the root README.
+Confirm all three applications have runnable demo paths.
+Add production-readiness checks for each application.
+Add screenshots and portfolio assets.
+Prepare the first formal release.
+Source of Truth
 
-The Sales Pipeline Manager keeps the stable internal folder name:
+This document must be updated after:
 
-- projects/sales_pipeline_manager/
-
-It is positioned externally as a human-in-the-loop AI sales automation workflow.
-
-The system drafts and recommends actions but does not send emails or update CRM records without human approval.
-
-## Next Recommended Work
-
-1. Clean up stale local feature branches that are already merged.
-2. Run full quality gate.
-3. Review README and portfolio-facing documentation.
-4. Add or update Interview Guide.
-5. Continue production hardening and dashboard polish.
-
-## Stale Local Branches to Review
-
-These branches appear merged into main and may be deleted locally after verification:
-
-- ci/github-actions
-- chore/pre-commit-hooks
-- test/runtime-contract-tests
-- feature/streamlit-dashboard
-- feature/dashboard-live-workflow-demo
-- feature/dashboard-live-customer-support-demo
-- feature/dashboard-v3-runtime-switching
-- feature/document-compliance-vertical-slice
-- feature/sales-pipeline-vertical-slice
-- feature/tensorrt-runtime-productionization
+Major milestones
+Completed vertical slices
+Architecture changes
+Chat or engineer handoffs
+Significant roadmap changes
