@@ -7,6 +7,7 @@ from projects.sales_pipeline_manager.schemas import (
     CompanyResearch,
     Lead,
     LeadScore,
+    OutreachDraft,
 )
 from shared.state.base import BaseWorkflowState
 
@@ -17,6 +18,7 @@ class SalesPipelineState(BaseWorkflowState):
     lead: Lead
     lead_score: LeadScore | None = Field(default=None)
     company_research: CompanyResearch | None = Field(default=None)
+    outreach_draft: OutreachDraft | None = Field(default=None)
     approval_status: ApprovalStatus = Field(default=ApprovalStatus.PENDING)
     reviewer_feedback: str | None = Field(default=None, min_length=1)
     pending_actions: list[str] = Field(default_factory=list)
@@ -40,6 +42,8 @@ class SalesPipelineState(BaseWorkflowState):
     def add_pending_action(self, action: str) -> None:
         """Record an external action that requires human approval."""
         cleaned_action = self._clean_event_text(action, "Pending action")
+        if not isinstance(self.pending_actions, list):
+            self.pending_actions = []
         self.pending_actions.append(cleaned_action)
         self.add_audit_event(f"Pending action proposed: {cleaned_action}")
 
@@ -88,13 +92,13 @@ class SalesPipelineState(BaseWorkflowState):
             raise ValueError("Only pending actions may be completed.")
 
         self.pending_actions.remove(cleaned_action)
-        self.completed_actions.append(cleaned_action)
+        self.completed_actions.append(cleaned_action)  # pylint: disable=no-member
         self.add_audit_event(f"Approved action completed: {cleaned_action}")
 
     def add_audit_event(self, event: str) -> None:
         """Append a cleaned event to the audit trail."""
         cleaned_event = self._clean_event_text(event, "Audit event")
-        self.audit_events.append(cleaned_event)
+        self.audit_events.append(cleaned_event)  # pylint: disable=no-member
 
     @staticmethod
     def _clean_event_text(value: str, field_name: str) -> str:

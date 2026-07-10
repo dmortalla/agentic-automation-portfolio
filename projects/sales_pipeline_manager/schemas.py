@@ -140,3 +140,62 @@ class CompanyResearch(BaseModel):
             raise ValueError("Research list entries must not be blank.")
 
         return cleaned_values
+
+
+class OutreachTone(StrEnum):
+    """Supported outreach-draft tones."""
+
+    PROFESSIONAL = "professional"
+    CONSULTATIVE = "consultative"
+    FRIENDLY = "friendly"
+
+
+class OutreachDraft(BaseModel):
+    """Human-reviewable personalized outreach draft.
+
+    Attributes:
+        subject: Proposed email subject line.
+        body: Proposed outreach email body.
+        personalization_summary: Facts used to personalize the message.
+        call_to_action: Safe proposed next step for the recipient.
+        tone: Requested communication tone.
+        confidence: Draft confidence from 0.0 to 1.0.
+        requires_human_review: Whether human approval is required.
+        approval_status: Current review status.
+    """
+
+    subject: str = Field(..., min_length=5, max_length=120)
+    body: str = Field(..., min_length=30)
+    personalization_summary: list[str] = Field(min_length=1)
+    call_to_action: str = Field(..., min_length=5)
+    tone: OutreachTone = Field(default=OutreachTone.CONSULTATIVE)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    requires_human_review: bool = Field(default=True)
+    approval_status: ApprovalStatus = Field(default=ApprovalStatus.PENDING)
+
+    @field_validator("subject", "body", "call_to_action")
+    @classmethod
+    def strip_outreach_text(cls, value: str) -> str:
+        """Strip outreach text and reject blank values."""
+        cleaned_value = value.strip()
+
+        if not cleaned_value:
+            raise ValueError("Outreach text must not be blank.")
+
+        return cleaned_value
+
+    @field_validator("personalization_summary")
+    @classmethod
+    def clean_personalization_summary(
+        cls,
+        values: list[str],
+    ) -> list[str]:
+        """Strip personalization facts and reject blank entries."""
+        cleaned_values = [value.strip() for value in values]
+
+        if not cleaned_values or any(not value for value in cleaned_values):
+            raise ValueError(
+                "Personalization summary must contain non-blank facts."
+            )
+
+        return cleaned_values

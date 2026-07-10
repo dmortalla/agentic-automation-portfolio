@@ -1,6 +1,10 @@
 """Prompt builders for the AI Sales Pipeline Manager."""
 
-from projects.sales_pipeline_manager.schemas import Lead, LeadScore
+from projects.sales_pipeline_manager.schemas import (
+    CompanyResearch,
+    Lead,
+    LeadScore,
+)
 
 
 def build_lead_scoring_prompt(lead: Lead) -> str:
@@ -44,11 +48,7 @@ def build_company_research_prompt(
     lead: Lead,
     lead_score: LeadScore,
 ) -> str:
-    """Build a constrained company-research prompt.
-
-    The prompt permits analysis only from supplied lead facts. Live search
-    providers may be added later behind approved tools.
-    """
+    """Build a constrained company-research prompt."""
     return f"""
 You are a business research specialist supporting a human sales reviewer.
 
@@ -64,12 +64,59 @@ Qualification decision: {lead_score.decision.value}
 Qualification reasoning: {lead_score.reasoning}
 
 Return structured research containing:
-- summary: evidence-based organization and opportunity summary
-- pain_points: likely pain points supported by supplied information
-- opportunities: safe areas for further human investigation
+- summary
+- pain_points
+- opportunities
 - confidence: decimal from 0.0 to 1.0
 - sources: empty unless approved sources were explicitly supplied
 - requires_human_review: always true
 
 Do not recommend contacting the lead or changing a CRM record.
+""".strip()
+
+
+def build_outreach_draft_prompt(
+    lead: Lead,
+    lead_score: LeadScore,
+    research: CompanyResearch,
+) -> str:
+    """Build a constrained personalized outreach-draft prompt."""
+    return f"""
+You are a business-to-business outreach drafting specialist.
+
+Create a concise, personalized outreach email using only the supplied facts.
+Do not invent achievements, customers, metrics, relationships, or research.
+
+Lead:
+- Company: {lead.company_name}
+- Contact: {lead.contact_name}
+- Role: {lead.job_title or "Unknown"}
+- Industry: {lead.industry or "Unknown"}
+- Expressed need: {lead.expressed_need}
+
+Qualification:
+- Score: {lead_score.score}
+- Decision: {lead_score.decision.value}
+- Reasoning: {lead_score.reasoning}
+
+Research:
+- Summary: {research.summary}
+- Pain points: {research.pain_points}
+- Opportunities: {research.opportunities}
+
+Return structured outreach containing:
+- subject
+- body
+- personalization_summary
+- call_to_action
+- tone: professional, consultative, or friendly
+- confidence: decimal from 0.0 to 1.0
+- requires_human_review: always true
+- approval_status: pending
+
+The message is a draft only.
+
+Do not claim that the email was sent.
+Do not recommend bypassing human approval.
+Do not include unsupported claims or fabricated facts.
 """.strip()
