@@ -34,19 +34,7 @@ class ApprovalStatus(StrEnum):
 
 
 class Lead(BaseModel):
-    """Validated lead submitted to the sales pipeline.
-
-    Attributes:
-        lead_id: Unique lead identifier.
-        company_name: Organization associated with the lead.
-        contact_name: Primary contact name.
-        contact_email: Primary contact email address.
-        job_title: Contact's role, when known.
-        industry: Organization industry, when known.
-        company_size: Approximate employee count, when known.
-        source: Channel through which the lead was acquired.
-        expressed_need: Business need or problem described by the lead.
-    """
+    """Validated lead submitted to the sales pipeline."""
 
     lead_id: str = Field(..., min_length=1)
     company_name: str = Field(..., min_length=1)
@@ -91,16 +79,7 @@ class Lead(BaseModel):
 
 
 class LeadScore(BaseModel):
-    """Structured lead-scoring result.
-
-    Attributes:
-        score: Qualification score from 0 to 100.
-        decision: Recommended qualification outcome.
-        reasoning: Explanation supporting the score and decision.
-        recommended_next_step: Safe recommended action for a reviewer.
-        requires_human_review: Whether a reviewer must approve progression.
-        approval_status: Current human-review status.
-    """
+    """Structured lead-scoring result."""
 
     score: int = Field(..., ge=0, le=100)
     decision: QualificationDecision
@@ -119,3 +98,45 @@ class LeadScore(BaseModel):
             raise ValueError("Recommendation text must not be blank.")
 
         return cleaned_value
+
+
+class CompanyResearch(BaseModel):
+    """Structured company research produced for a qualified lead.
+
+    Attributes:
+        summary: Evidence-based organization summary.
+        pain_points: Relevant business problems inferred from supplied facts.
+        opportunities: Potential areas where the solution may help.
+        confidence: Research confidence between 0.0 and 1.0.
+        sources: Approved source names or references, when available.
+        requires_human_review: Whether a human must verify the research.
+    """
+
+    summary: str = Field(..., min_length=20)
+    pain_points: list[str] = Field(default_factory=list)
+    opportunities: list[str] = Field(default_factory=list)
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    sources: list[str] = Field(default_factory=list)
+    requires_human_review: bool = Field(default=True)
+
+    @field_validator("summary")
+    @classmethod
+    def strip_summary(cls, value: str) -> str:
+        """Strip and validate the research summary."""
+        cleaned_value = value.strip()
+
+        if not cleaned_value:
+            raise ValueError("Research summary must not be blank.")
+
+        return cleaned_value
+
+    @field_validator("pain_points", "opportunities", "sources")
+    @classmethod
+    def clean_text_lists(cls, values: list[str]) -> list[str]:
+        """Strip list entries and reject blank items."""
+        cleaned_values = [value.strip() for value in values]
+
+        if any(not value for value in cleaned_values):
+            raise ValueError("Research list entries must not be blank.")
+
+        return cleaned_values
